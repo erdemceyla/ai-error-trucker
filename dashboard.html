@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistem Hata Raporları</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { text-align: center; color: #2f3542; margin-bottom: 30px; }
+        
+        .error-card { 
+            background: white; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            border-left: 6px solid #ff4757; 
+        }
+        .source { font-weight: bold; color: #747d8c; font-size: 0.9em; text-transform: uppercase; }
+        .message { font-size: 1.2em; color: #2f3542; margin: 10px 0; font-weight: 600; }
+        
+        .ai-box { 
+            background: #eccc68; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-size: 0.95em; 
+            color: #2f3542; 
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+        .ai-box.failed { background: #dfe4ea; color: #747d8c; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🛠️ Sistem Hata Yönetim Paneli</h1>
+        <div id="error-list">
+            <p style="text-align: center; color: #747d8c;">Veritabanına bağlanılıyor...</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadErrors() {
+            try {
+                // Backend API'mize istek atıyoruz
+                const response = await fetch('http://127.0.0.1:8000/api/errors');
+                const result = await response.json();
+                
+                const listDiv = document.getElementById('error-list');
+                listDiv.innerHTML = ''; // "Yükleniyor" yazısını temizle
+
+                // Eğer veritabanında hiç hata yoksa
+                if (result.data.length === 0) {
+                    listDiv.innerHTML = '<p style="text-align:center;">Şu an hiç hata kaydı yok. Sistem kusursuz çalışıyor! ✨</p>';
+                    return;
+                }
+
+                // Gelen her bir hata için ekranda bir "kart" oluştur
+                result.data.forEach(err => {
+                    const card = document.createElement('div');
+                    card.className = 'error-card';
+                    
+                    // AI analizi başarılı mı yoksa kotaya mı takıldı kontrolü
+                    let aiClass = "ai-box";
+                    if(err.ai_analysis && err.ai_analysis.includes("yapılamıyor")) {
+                         aiClass = "ai-box failed";
+                    }
+
+                    card.innerHTML = `
+                        <div class="source">📍 Kaynak: ${err.source}</div>
+                        <div class="message">💥 Hata: ${err.message}</div>
+                        <div class="${aiClass}"><strong>🤖 AI Analizi:</strong><br> ${err.ai_analysis}</div>
+                    `;
+                    listDiv.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error("Hata çekilemedi:", error);
+                document.getElementById('error-list').innerHTML = '<p style="text-align:center; color:red;">Sunucuya bağlanılamadı. Backend (uvicorn) çalışıyor mu?</p>';
+            }
+        }
+
+        // Sayfa açılır açılmaz verileri çek
+        loadErrors();
+    </script>
+
+</body>
+</html>
